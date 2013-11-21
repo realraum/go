@@ -1,7 +1,6 @@
 package termios
 
 import (
-    "fmt";
     "os";
     "syscall";
     "unsafe"
@@ -10,8 +9,8 @@ import (
 
 // termios types
 type cc_t byte
-type speed_t uint
-type tcflag_t uint
+type speed_t uint32
+type tcflag_t uint32
 
 // termios constants
 const (
@@ -99,7 +98,6 @@ func getTermios (dst *termios) error {
     if r1 != 0 {
     //    return errors.New("Error")
     }
-
     return nil
 }
 
@@ -113,56 +111,28 @@ func setTermios (src *termios) error {
     }
 
     if r1 != 0 {
-        return errors.New ("Error")
+        return errors.New ("Error during ioctl tcsets syscall")
     }
-
     return nil
 }
 
-func tty_raw () error {
-    raw := orig_termios;
+func SetRaw () (error) {
+    if err := getTermios (&orig_termios); err != nil { return err}
 
-    raw.c_iflag &= ^(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-    raw.c_oflag &= ^(OPOST);
-    raw.c_cflag |= (CS8);
-    raw.c_lflag &= ^(ECHO | ICANON | IEXTEN | ISIG);
+    orig_termios.c_iflag &= ^(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+    orig_termios.c_oflag &= ^(OPOST);
+    orig_termios.c_cflag |= (CS8);
+    orig_termios.c_lflag &= ^(ECHO | ICANON | IEXTEN | ISIG);
 
-    raw.c_cc[VMIN] = 1;
-    raw.c_cc[VTIME] = 0;
+    orig_termios.c_cc[VMIN] = 1;
+    orig_termios.c_cc[VTIME] = 0;
 
-    if err := setTermios (&raw); err != nil { return err }
-
-    return nil
+    return setTermios(&orig_termios)
 }
 
-func SetRaw () {
-    var (
-        err error
-    )
-
-    defer func () {
-        if err != nil { fmt.Printf ("SetRaw Error: %v\n",err) }
-    } ();
-
-    if err = getTermios (&orig_termios); err != nil { return }
-
-//    defer func () {
-//        err = setTermios (&orig_termios)
-//    } ();
-
-    if err = tty_raw (); err != nil { return }
-    //if err = screenio (); err != nil { return }
-}
-
-func SetSpeed (speed speed_t) {
-    var err error
-
-    defer func () {
-        if err != nil { fmt.Printf ("SetSpeed Error: %v\n",err) }
-    } ();
-
-    if err = getTermios (&orig_termios); err != nil { return }
+func SetSpeed (speed speed_t) (error) {
+    if err := getTermios (&orig_termios); err != nil { return err }
     orig_termios.c_ispeed = speed
     orig_termios.c_ospeed = speed
-    err = setTermios (&orig_termios)
+    return setTermios(&orig_termios)
 }
