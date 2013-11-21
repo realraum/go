@@ -119,3 +119,16 @@ func SetRaw () {
     if err = tty_raw (); err != nil { return }
     //if err = screenio (); err != nil { return }
 }
+
+func SetSpeed (speed uint) {
+    var err error
+
+    defer func () {
+        if err != nil { fmt.Printf ("SetSpeed Error: %v\n",err) }
+    } ();
+
+    if err = getTermios (&orig_termios); err != nil { return }
+    orig_termios.c_ispeed = speed_t(speed)
+    orig_termios.c_ospeed = speed_t(speed)
+    err = setTermios (&orig_termios)
+}
