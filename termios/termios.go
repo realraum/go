@@ -15,19 +15,53 @@ type tcflag_t uint
 
 // termios constants
 const (
-    BRKINT = tcflag_t (0000002);
-    ICRNL = tcflag_t (0000400);
-    INPCK = tcflag_t (0000020);
-    ISTRIP = tcflag_t (0000040);
-    IXON = tcflag_t (0002000);
-    OPOST = tcflag_t (0000001);
-    CS8 = tcflag_t (0000060);
-    ECHO = tcflag_t (0000010);
-    ICANON = tcflag_t (0000002);
-    IEXTEN = tcflag_t (0100000);
-    ISIG = tcflag_t (0000001);
-    VTIME = tcflag_t (5);
+    BRKINT = tcflag_t (0000002)
+    ICRNL = tcflag_t (0000400)
+    INPCK = tcflag_t (0000020)
+    ISTRIP = tcflag_t (0000040)
+    IXON = tcflag_t (0002000)
+    OPOST = tcflag_t (0000001)
+    CS8 = tcflag_t (0000060)
+    ECHO = tcflag_t (0000010)
+    ICANON = tcflag_t (0000002)
+    IEXTEN = tcflag_t (0100000)
+    ISIG = tcflag_t (0000001)
+    VTIME = tcflag_t (5)
     VMIN = tcflag_t (6)
+)
+
+const (
+    B0 = speed_t(0000000)         /* hang up */
+    B50 = speed_t(0000001)
+    B75 = speed_t(0000002)
+    B110 = speed_t(0000003)
+    B134 = speed_t(0000004)
+    B150 = speed_t(0000005)
+    B200 = speed_t(0000006)
+    B300 = speed_t(0000007)
+    B600 = speed_t(0000010)
+    B1200 = speed_t(0000011)
+    B1800 = speed_t(0000012)
+    B2400 = speed_t(0000013)
+    B4800 = speed_t(0000014)
+    B9600 = speed_t(0000015)
+    B19200 = speed_t(0000016)
+    B38400 = speed_t(0000017)
+    B57600 = speed_t(0010001)
+    B115200 = speed_t(0010002)
+    B230400 = speed_t(0010003)
+    B460800 = speed_t(0010004)
+    B500000 = speed_t(0010005)
+    B576000 = speed_t(0010006)
+    B921600 = speed_t(0010007)
+    B1000000 = speed_t(0010010)
+    B1152000 = speed_t(0010011)
+    B1500000 = speed_t(0010012)
+    B2000000 = speed_t(0010013)
+    B2500000 = speed_t(0010014)
+    B3000000 = speed_t(0010015)
+    B3500000 = speed_t(0010016)
+    B4000000 = speed_t(0010017)
 )
 
 const NCCS = 32
@@ -40,7 +74,7 @@ type termios struct {
 
 // ioctl constants
 const (
-    TCGETS = 0x5401;
+    TCGETS = 0x5401
     TCSETS = 0x5402
 )
 
@@ -120,7 +154,7 @@ func SetRaw () {
     //if err = screenio (); err != nil { return }
 }
 
-func SetSpeed (speed uint) {
+func SetSpeed (speed speed_t) {
     var err error
 
     defer func () {
@@ -128,7 +162,7 @@ func SetSpeed (speed uint) {
     } ();
 
     if err = getTermios (&orig_termios); err != nil { return }
-    orig_termios.c_ispeed = speed_t(speed)
-    orig_termios.c_ospeed = speed_t(speed)
+    orig_termios.c_ispeed = speed
+    orig_termios.c_ospeed = speed
     err = setTermios (&orig_termios)
 }
