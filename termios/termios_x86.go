@@ -1,3 +1,6 @@
+// +build linux,386 linux,amd64
+
+
 package termios
 
 import (
@@ -14,7 +17,13 @@ type tcflag_t uint32
 
 // termios constants
 const (
+    IGNBRK = tcflag_t (0000001)
     BRKINT = tcflag_t (0000002)
+    IGNPAR = tcflag_t (0000004)
+    PARMRK = tcflag_t (0000010)
+    INLCR = tcflag_t (0000100)
+    ECHONL = tcflag_t (0000100)
+    IGNCR = tcflag_t (0000200)
     ICRNL = tcflag_t (0000400)
     INPCK = tcflag_t (0000020)
     ISTRIP = tcflag_t (0000040)
@@ -27,6 +36,8 @@ const (
     ISIG = tcflag_t (0000001)
     VTIME = tcflag_t (5)
     VMIN = tcflag_t (6)
+    CBAUD = tcflag_t (0010017)
+    CBAUDEX = tcflag_t (0010000)
 )
 
 const (
@@ -63,12 +74,13 @@ const (
     B4000000 = speed_t(0010017)
 )
 
-const NCCS = 32
+//note that struct termios and struct __kernel_termios have DIFFERENT size and layout !!!
+const NCCS = 19  //23 on mips, 19 on alpha (also line and cc reversed), 19 on powerpc (also line and cc reversed), 17 on sparc, 
 type termios struct {
-    c_iflag, c_oflag, c_cflag, c_lflag tcflag_t;
-    c_line cc_t;
-    c_cc [NCCS]cc_t;
-    c_ispeed, c_ospeed speed_t
+    c_iflag, c_oflag, c_cflag, c_lflag  tcflag_t
+    c_line  cc_t
+    c_cc    [NCCS]cc_t
+    //~ c_ispeed, c_ospeed  speed_t  //unused in kernel on x86 apparently
 }
 
 // ioctl constants
@@ -77,16 +89,7 @@ const (
     TCSETS = 0x5402
 )
 
-var (
-    orig_termios termios;
-    ttyfd uintptr = 0 // STDIN_FILENO
-)
-
-func Ttyfd(fd uintptr) {
-  ttyfd=fd
-}
-
-func getTermios (dst *termios) error {
+func getTermios(ttyfd uintptr, dst *termios) error {
     r1, _, errno := syscall.Syscall (syscall.SYS_IOCTL,
                                      uintptr (ttyfd), uintptr (TCGETS),
                                      uintptr (unsafe.Pointer (dst)));
@@ -101,7 +104,7 @@ func getTermios (dst *termios) error {
     return nil
 }
 
-func setTermios (src *termios) error {
+func setTermios(ttyfd uintptr, src *termios) error {
     r1, _, errno := syscall.Syscall (syscall.SYS_IOCTL,
                                      uintptr (ttyfd), uintptr (TCSETS),
                                      uintptr (unsafe.Pointer (src)));
@@ -116,23 +119,46 @@ func setTermios (src *termios) error {
     return nil
 }
 
-func SetRaw () (error) {
-    if err := getTermios (&orig_termios); err != nil { return err}
+func SetRawFd(fd uintptr) (error) {
+    var orig_termios termios;
+    if err := getTermios (fd, &orig_termios); err != nil { return err}
 
-    orig_termios.c_iflag &= ^(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+    orig_termios.c_iflag &= ^(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
     orig_termios.c_oflag &= ^(OPOST);
+    orig_termios.c_lflag &= ^(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
     orig_termios.c_cflag |= (CS8);
-    orig_termios.c_lflag &= ^(ECHO | ICANON | IEXTEN | ISIG);
 
     orig_termios.c_cc[VMIN] = 1;
     orig_termios.c_cc[VTIME] = 0;
 
-    return setTermios(&orig_termios)
+    return setTermios(fd, &orig_termios)
 }
 
-func SetSpeed (speed speed_t) (error) {
-    if err := getTermios (&orig_termios); err != nil { return err }
-    orig_termios.c_ispeed = speed
-    orig_termios.c_ospeed = speed
-    return setTermios(&orig_termios)
+func SetRawFile(f *os.File) (error) {
+    return SetRawFd(f.Fd())
+}
+
+func SetSpeedFd(fd uintptr, speed speed_t) (err error) {
+    var orig_termios termios;
+    if err = getTermios (fd, &orig_termios); err != nil { return }
+    
+    //~ orig_termios.c_ispeed = speed
+    //~ orig_termios.c_ospeed = speed
+    //input baudrate == output baudrate and we ignore special case B0
+    orig_termios.c_cflag &= ^(CBAUD | CBAUDEX)
+    orig_termios.c_cflag |= tcflag_t(speed)
+    if err = setTermios(fd, &orig_termios); err != nil { return }
+    //~ if err = getTermios (fd, &orig_termios); err != nil { return }
+    //~ if orig_termios.c_ispeed != speed || orig_termios.c_ospeed != speed {
+        //~ err = errors.New("Failed to set speed")
+    //~ }
+    if err = getTermios (fd, &orig_termios); err != nil { return }
+    if orig_termios.c_cflag & (CBAUD | CBAUDEX) != tcflag_t(speed) {
+        err = errors.New("Failed to set speed")
+    }
+    return
+}
+
+func SetSpeedFile(f *os.File, speed speed_t) (error) {
+    return SetSpeedFd(f.Fd(), speed)
 }
