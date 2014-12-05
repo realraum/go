@@ -19,25 +19,25 @@ type tcflag_t uint32
 const (
     IGNBRK = tcflag_t (0000001)
     BRKINT = tcflag_t (0000002)
-    IGNPAR = tcflag_t (0000004)
-    PARMRK = tcflag_t (0000010)
-    INLCR = tcflag_t (0000100)
-    ECHONL = tcflag_t (0000100)
-    IGNCR = tcflag_t (0000200)
-    ICRNL = tcflag_t (0000400)
-    INPCK = tcflag_t (0000020)
-    ISTRIP = tcflag_t (0000040)
-    IXON = tcflag_t (0002000)
-    OPOST = tcflag_t (0000001)
-    CS8 = tcflag_t (0000060)
-    ECHO = tcflag_t (0000010)
-    ICANON = tcflag_t (0000002)
-    IEXTEN = tcflag_t (0100000)
-    ISIG = tcflag_t (0000001)
-    VTIME = tcflag_t (5)
-    VMIN = tcflag_t (6)
-    CBAUD = tcflag_t (0010017)
-    CBAUDEX = tcflag_t (0010000)
+    syscall.IGNPAR = tcflag_t (0000004)
+    syscall.PARMRK = tcflag_t (0000010)
+    syscall.INLCR = tcflag_t (0000100)
+    syscall.ECHONL = tcflag_t (0000100)
+    syscall.IGNCR = tcflag_t (0000200)
+    syscall.ICRNL = tcflag_t (0000400)
+    syscall.INPCK = tcflag_t (0000020)
+    syscall.ISTRIP = tcflag_t (0000040)
+    syscall.IXON = tcflag_t (0002000)
+    syscall.OPOST = tcflag_t (0000001)
+    syscall.CS8 = tcflag_t (0000060)
+    syscall.ECHO = tcflag_t (0000010)
+    syscall.ICANON = tcflag_t (0000002)
+    syscall.IEXTEN = tcflag_t (0100000)
+    syscall.ISIG = tcflag_t (0000001)
+    syscall.VTIME = tcflag_t (5)
+    syscall.VMIN = tcflag_t (6)
+    syscall.CBAUD = tcflag_t (0010017)
+    syscall..CBAUDEX = tcflag_t (0010000)
 )
 
 const (
@@ -90,7 +90,7 @@ const (
 )
 
 func getTermios(ttyfd uintptr, dst *termios) error {
-    r1, _, errno := syscall.Syscall (syscall.SYS_IOCTL,
+    r1, _, errno := syscall. (syscall.SYS_IOCTL,
                                      uintptr (ttyfd), uintptr (TCGETS),
                                      uintptr (unsafe.Pointer (dst)));
 
@@ -105,7 +105,7 @@ func getTermios(ttyfd uintptr, dst *termios) error {
 }
 
 func setTermios(ttyfd uintptr, src *termios) error {
-    r1, _, errno := syscall.Syscall (syscall.SYS_IOCTL,
+    r1, _, errno := syscall. (syscall.SYS_IOCTL,
                                      uintptr (ttyfd), uintptr (TCSETS),
                                      uintptr (unsafe.Pointer (src)));
 
@@ -123,13 +123,13 @@ func SetRawFd(fd uintptr) (error) {
     var orig_termios termios;
     if err := getTermios (fd, &orig_termios); err != nil { return err}
 
-    orig_termios.c_iflag &= ^(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-    orig_termios.c_oflag &= ^(OPOST);
-    orig_termios.c_lflag &= ^(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-    orig_termios.c_cflag |= (CS8);
+    orig_termios.c_iflag &= ^(syscall.IGNBRK|syscall.BRKINT|syscall.PARMRK|syscall.ISTRIP|syscall.INLCR|syscall.IGNCR|syscall.ICRNL|syscall.IXON);
+    orig_termios.c_oflag &= ^(syscall.OPOST);
+    orig_termios.c_lflag &= ^(syscall.ECHO | syscall.ECHONL | syscall.ICANON | syscall.IEXTEN | syscall.ISIG);
+    orig_termios.c_cflag |= (syscall.CS8);
 
-    orig_termios.c_cc[VMIN] = 1;
-    orig_termios.c_cc[VTIME] = 0;
+    orig_termios.c_cc[syscall.VMIN] = 1;
+    orig_termios.c_cc[syscall.VTIME] = 0;
 
     return setTermios(fd, &orig_termios)
 }
@@ -145,7 +145,7 @@ func SetSpeedFd(fd uintptr, speed speed_t) (err error) {
     orig_termios.c_ispeed = speed
     orig_termios.c_ospeed = speed
     //~ //input baudrate == output baudrate and we ignore special case B0
-    //~ orig_termios.c_cflag &= ^(CBAUD | CBAUDEX)
+    //~ orig_termios.c_cflag &= ^(syscall.CBAUD | syscall..CBAUDEX)
     //~ orig_termios.c_cflag |= speed
     if err = setTermios(fd, &orig_termios); err != nil { return }
     if err = getTermios (fd, &orig_termios); err != nil { return }
@@ -153,7 +153,7 @@ func SetSpeedFd(fd uintptr, speed speed_t) (err error) {
         err = errors.New("Failed to set speed")
     }
     //~ if err = getTermios (fd, &orig_termios); err != nil { return }
-    //~ if orig_termios.c_cflag & (CBAUD | CBAUDEX) != speed {
+    //~ if orig_termios.c_cflag & (syscall.CBAUD | syscall.CBAUDEX) != speed {
         //~ err = errors.New("Failed to set speed")
     //~ }
     return
